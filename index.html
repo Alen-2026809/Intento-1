@@ -1,0 +1,292 @@
+from pathlib import Path
+import textwrap, zipfile
+
+html = r'''<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DILLY.EXE — ONE MONTH</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Quicksand:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg:#070a13; --panel:#0d1220; --panel2:#121a2c; --blue:#8fd8ff;
+  --blue2:#4da9df; --white:#f3f7ff; --yellow:#f4d35e; --pink:#ff9fcf;
+  --green:#8de7b1; --muted:#8e9ab1;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:radial-gradient(circle at 50% 0%,#152746 0%,#070a13 48%,#03050a 100%);
+  color:var(--white);font-family:Quicksand,sans-serif;min-height:100vh;overflow-x:hidden;
+}
+body:before{
+  content:"";position:fixed;inset:0;pointer-events:none;opacity:.18;
+  background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:32px 32px;
+}
+.screen{min-height:100vh;display:none;align-items:center;justify-content:center;padding:28px}
+.screen.active{display:flex}
+.panel{
+  width:min(900px,96vw);background:rgba(13,18,32,.94);border:1px solid rgba(143,216,255,.35);
+  box-shadow:0 0 45px rgba(77,169,223,.13),inset 0 0 40px rgba(143,216,255,.025);
+  border-radius:18px;padding:34px;position:relative;overflow:hidden;
+}
+.pixel{font-family:"Press Start 2P",monospace;line-height:1.7}
+.center{text-align:center}
+.tiny{font-size:10px;color:var(--muted)}
+.title{font-size:clamp(28px,7vw,66px);letter-spacing:4px;color:var(--blue);text-shadow:0 0 18px rgba(143,216,255,.5)}
+.subtitle{font-size:clamp(14px,2vw,19px);color:#dce9ff}
+.btn{
+  border:1px solid var(--blue2);background:#0c1727;color:var(--white);padding:14px 20px;border-radius:10px;
+  cursor:pointer;font-family:"Press Start 2P",monospace;font-size:11px;transition:.2s;margin:6px;
+}
+.btn:hover{transform:translateY(-2px);background:#142943;box-shadow:0 0 20px rgba(143,216,255,.18)}
+.btn.gold{border-color:var(--yellow);color:#fff5bb}
+.hidden{display:none!important}
+.type{min-height:120px;white-space:pre-wrap}
+.progress{height:10px;background:#060913;border-radius:20px;overflow:hidden;border:1px solid #25304a}
+.progress i{display:block;height:100%;width:0;background:var(--blue);transition:1.2s}
+.menu-list{display:grid;gap:12px;margin-top:25px}
+.menu-item{
+  padding:17px;border:1px solid #263450;background:#0a101d;border-radius:12px;cursor:pointer;
+}
+.menu-item:hover{border-color:var(--blue);transform:translateX(4px)}
+.menu-item b{color:var(--blue)}
+.room{
+  width:min(1050px,96vw);min-height:650px;position:relative;border-radius:22px;overflow:hidden;
+  background:
+  radial-gradient(circle at 78% 18%,rgba(143,216,255,.20),transparent 20%),
+  linear-gradient(180deg,#101a2c 0%,#0b1020 58%,#070a13 100%);
+  border:1px solid #314664;
+}
+.stars{position:absolute;inset:0;background-image:radial-gradient(#fff 1px,transparent 1px);background-size:83px 83px;opacity:.16}
+.window{position:absolute;right:7%;top:7%;width:33%;height:31%;border:8px solid #161b28;border-radius:10px;background:linear-gradient(#152e55,#07101e);overflow:hidden}
+.moon{position:absolute;width:62px;height:62px;border-radius:50%;right:16%;top:17%;background:#e8f4ff;box-shadow:0 0 35px #bfe6ff}
+.room-title{position:absolute;left:5%;top:5%;font-family:"Press Start 2P";font-size:12px;color:var(--blue)}
+.floor{position:absolute;bottom:0;left:0;right:0;height:29%;background:linear-gradient(#161523,#0a0b12);border-top:2px solid #252c3e}
+.table{position:absolute;left:15%;bottom:20%;width:28%;height:13%;background:#3a2630;border:4px solid #17151d;border-radius:8px}
+.table:after{content:"";position:absolute;left:8%;right:8%;bottom:-55px;height:55px;background:#281b25}
+.box{position:absolute;left:24%;bottom:34%;width:90px;height:60px;background:#e5c24f;border:5px solid #4d4020;border-radius:5px;cursor:pointer;box-shadow:0 0 20px rgba(244,211,94,.15)}
+.flower{position:absolute;left:8%;bottom:27%;font-size:50px;cursor:pointer;filter:drop-shadow(0 0 8px rgba(244,211,94,.25))}
+.frame{position:absolute;width:145px;height:110px;background:#0a0e18;border:5px solid #b7c4d7;border-radius:5px;cursor:pointer;overflow:hidden;box-shadow:0 8px 25px rgba(0,0,0,.35)}
+.frame span{display:flex;align-items:center;justify-content:center;height:100%;text-align:center;padding:10px;font-family:"Press Start 2P";font-size:9px;line-height:1.6;color:#dce9ff}
+.frame img{width:100%;height:100%;object-fit:cover;display:none}
+.f1{right:43%;bottom:31%}.f2{right:26%;bottom:44%}.f3{right:9%;bottom:28%}.f4{left:45%;bottom:13%}
+.heart{position:absolute;right:5%;bottom:8%;font-size:36px;cursor:pointer}
+.tooltip{position:absolute;bottom:8%;left:50%;transform:translateX(-50%);background:#080b13;border:1px solid #314664;padding:10px 15px;border-radius:9px;font-size:13px;color:#dce9ff;max-width:80%;text-align:center}
+.modal{
+ position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;align-items:center;justify-content:center;padding:20px;z-index:20
+}
+.modal.show{display:flex}
+.modal-card{width:min(720px,95vw);max-height:88vh;overflow:auto;background:#0c1220;border:1px solid #3c587d;border-radius:18px;padding:30px;box-shadow:0 0 70px rgba(0,0,0,.5)}
+.modal-card h2{color:var(--blue);margin-top:0}
+.ship-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0}
+.ship{
+ min-height:170px;border:1px solid #314664;border-radius:14px;padding:15px;background:#0a101b;cursor:pointer;
+ display:flex;flex-direction:column;justify-content:flex-end;position:relative;overflow:hidden
+}
+.ship .imgslot{position:absolute;inset:0;opacity:.2;background:linear-gradient(135deg,#203d5c,#17101f)}
+.ship b{position:relative;font-family:"Press Start 2P";font-size:10px;color:#fff}
+.ship small{position:relative;color:#aebbd0;margin-top:7px}
+.secret{
+ border-color:var(--pink)!important;box-shadow:0 0 24px rgba(255,159,207,.1)
+}
+.achievement{display:grid;grid-template-columns:55px 1fr;gap:15px;align-items:center;border:1px solid #27344e;padding:14px;border-radius:12px;margin:10px 0;background:#0a101b}
+.badge{font-size:28px;text-align:center}.locked{opacity:.38}
+.savefile{border:1px dashed #4d6a90;padding:18px;border-radius:12px;background:#080d17}
+.footer{text-align:center;color:#65738c;font-size:12px;margin-top:25px}
+@media(max-width:700px){
+ .panel{padding:22px}.window{width:42%;right:5%}.frame{width:110px;height:85px}.f1{right:44%;bottom:30%}.f2{right:4%;bottom:42%}.f3{right:7%;bottom:19%}.f4{left:41%;bottom:8%}
+ .ship-grid{grid-template-columns:1fr}.table{left:7%;width:34%}.box{left:18%}
+}
+</style>
+</head>
+<body>
+
+<section id="boot" class="screen active">
+ <div class="panel center">
+   <div class="tiny pixel">ALENSAVE_01 // PRIVATE BUILD</div>
+   <div class="title pixel">DILLY.EXE</div>
+   <div class="subtitle">THE FIRST MONTH — 29/08/26 → 29/09/26</div>
+   <div style="margin:28px 0"><div class="progress"><i id="bootbar"></i></div></div>
+   <div id="boottext" class="tiny">Loading save file...</div>
+   <button class="btn hidden" id="startBtn" onclick="go('menu')">START GAME</button>
+ </div>
+</section>
+
+<section id="menu" class="screen">
+ <div class="panel">
+   <div class="tiny pixel">SAVE FILE: ALEN × DILLY</div>
+   <h1 class="pixel" style="color:var(--blue)">ONE MONTH</h1>
+   <p>Un pequeño juego hecho para una persona muy específica.</p>
+   <div class="menu-list">
+     <div class="menu-item" onclick="chapter(1)"><b>01</b> — THE BEGINNING<br><span class="tiny">Cómo empezó todo.</span></div>
+     <div class="menu-item" onclick="chapter(2)"><b>02</b> — PLAYER 2<br><span class="tiny">Cuando dejaste de ser “alguien”.</span></div>
+     <div class="menu-item" onclick="chapter(3)"><b>03</b> — LITTLE THINGS<br><span class="tiny">Cosas pequeñas que me hacen pensar en ti.</span></div>
+     <div class="menu-item" onclick="chapter(4)"><b>04</b> — ACHIEVEMENTS<br><span class="tiny">30 días desbloqueados.</span></div>
+     <div class="menu-item" onclick="go('room')"><b>05</b> — THE ROOM<br><span class="tiny">Hay cosas escondidas aquí.</span></div>
+   </div>
+   <div class="footer">Hint: haz click en TODO. Sí, literalmente todo.</div>
+ </div>
+</section>
+
+<section id="chapter" class="screen">
+ <div class="panel">
+   <div class="tiny pixel" id="chapterNo"></div>
+   <h2 id="chapterTitle" class="pixel" style="color:var(--blue)"></h2>
+   <div id="chapterText" class="type"></div>
+   <div class="center"><button class="btn" onclick="go('menu')">← MENU</button><button class="btn gold" onclick="nextChapter()">CONTINUE →</button></div>
+ </div>
+</section>
+
+<section id="room" class="screen">
+ <div class="room">
+   <div class="stars"></div><div class="room-title">DILLY'S SAVE ROOM // LV. 01</div>
+   <div class="window"><div class="moon"></div></div>
+   <div class="floor"></div>
+   <div class="table"></div>
+   <div class="box" onclick="openBox()" title="For my only love"></div>
+   <div class="flower" onclick="popup('FLOWER FILE','🌻 Una flor amarilla para alguien que hizo este mes muchísimo más bonito.')">🌻</div>
+
+   <div class="frame f1" onclick="ship('IZUKU × BAKUGOU','SHIP FILE #01','Dos personajes que representan una historia que ustedes disfrutan. Aquí puedes poner la imagen que más les guste.','izuku_bakugo.jpg')">
+     <span>IZUKU<br>×<br>BAKUGOU</span><img id="img1" alt="">
+   </div>
+   <div class="frame f2" onclick="ship('NARUTO × SASUKE','SHIP FILE #02','Otro de sus ships favoritos. Reemplaza la imagen por la que quieran usar.','naruto_sasuke.jpg')">
+     <span>NARUTO<br>×<br>SASUKE</span><img id="img2" alt="">
+   </div>
+   <div class="frame f3" onclick="ship('ALEN × DILLY','SHIP FILE #03 — SECRET','¿Te recuerda a alguien? 👀 Este archivo representa el ship más importante de esta partida.','tu_foto.jpg')">
+     <span>???<br>×<br>???</span><img id="img3" alt="">
+   </div>
+   <div class="frame f4" onclick="popup('SAVE FILE','ALEN × DILLY<br><br>29/08/26 → 29/09/26<br><br>LV. 01 — EXP: 30 DAYS<br><br>STATUS: TO BE CONTINUED')">
+     <span>SAVE<br>FILE</span>
+   </div>
+   <div class="heart" onclick="popup('HIDDEN MESSAGE','No importa cuántos niveles tenga esto.<br><br>Yo seguiría eligiéndote para cada uno. 💙')">💙</div>
+   <div class="tooltip">Hay 6 cosas que puedes abrir. 👀</div>
+ </div>
+</section>
+
+<div id="modal" class="modal" onclick="if(event.target===this)closeModal()">
+ <div class="modal-card">
+   <h2 id="modalTitle"></h2><div id="modalBody"></div>
+   <div class="center"><button class="btn" onclick="closeModal()">CLOSE</button></div>
+ </div>
+</div>
+
+<script>
+const chapters = {
+1:{
+ n:'CHAPTER 01', t:'THE BEGINNING',
+ x:`Hace no tanto tiempo, dos personas estaban en un servidor, cada una viviendo su propia historia.
+
+Tú eras Izuku. Yo era Qifrey.
+
+Y al principio… ni siquiera hablábamos demasiado.
+
+Quién iba a pensar que, después de unos cuantos mensajes, bromas, indirectas y conversaciones, terminaríamos llegando hasta aquí.
+
+A veces las historias más importantes empiezan sin que sus protagonistas sepan que están entrando en ellas.`
+},
+2:{
+ n:'CHAPTER 02', t:'PLAYER 2',
+ x:`En algún punto dejaste de ser solamente alguien con quien hablaba.
+
+Te convertiste en mi persona favorita para contar cosas.
+En alguien que esperaba ver conectado.
+En alguien cuyo mensaje podía cambiarme el día.
+
+Y entonces llegó el momento en que los dos entendimos lo que estaba pasando.
+
+29/08/26.
+
+PLAYER 2 HAS JOINED.
+
+Y esta vez no quería que te fueras.`
+},
+3:{
+ n:'CHAPTER 03', t:'LITTLE THINGS',
+ x:`Hay cosas pequeñas que ahora tienen tu nombre.
+
+El azul.
+Las noches.
+Los gatos.
+Las canciones.
+Los juegos.
+Las conversaciones que se alargan.
+Las tonterías que solo nosotros entendemos.
+
+Y está “mi príncipe”.
+
+Porque entre todas las formas de llamarte, esa terminó sintiéndose especialmente mía.
+
+No necesito una ocasión enorme para pensar en ti.
+A veces basta una cosa diminuta.`
+},
+4:{
+ n:'CHAPTER 04', t:'ACHIEVEMENTS',
+ x:`30 días.
+
+No parecen tantos escritos así.
+
+Pero cuando pienso en todo lo que cabe dentro de ellos, sí lo parecen.
+
+30 días de tenerte.
+30 días de llamarte mi amor.
+30 días de descubrir más cosas de ti.
+30 días de construir algo que antes no existía.
+
+Y este logro no marca el final.
+
+Marca el primer checkpoint.`
+}
+};
+let current=1;
+function go(id){
+ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+ document.getElementById(id).classList.add('active');
+ window.scrollTo(0,0);
+}
+function chapter(n){
+ current=n; document.getElementById('chapterNo').textContent=chapters[n].n;
+ document.getElementById('chapterTitle').textContent=chapters[n].t;
+ document.getElementById('chapterText').textContent=chapters[n].x;
+ go('chapter');
+}
+function nextChapter(){ if(current<4) chapter(current+1); else go('menu'); }
+function popup(title,body){document.getElementById('modalTitle').innerHTML=title;document.getElementById('modalBody').innerHTML='<p style="line-height:1.8">'+body+'</p>';document.getElementById('modal').classList.add('show')}
+function closeModal(){document.getElementById('modal').classList.remove('show')}
+function ship(name,title,text,img){
+ popup(title,`<div class="savefile"><b>${name}</b><br><br>${text}<br><br><span class="tiny">IMAGE SLOT: ${img}<br>Coloca tu imagen en la misma carpeta del HTML con ese nombre para mostrarla.</span></div>`);
+}
+function openBox(){
+ popup('ACHIEVEMENT UNLOCKED',`
+ <div class="pixel" style="font-size:12px;color:var(--yellow)">ONE MONTH</div>
+ <p>29 / 08 / 2026 → 29 / 09 / 2026</p>
+ <p>30 DAYS.</p>
+ <p style="font-size:20px;color:var(--blue)">Y TE AMO.</p>
+ <hr style="border-color:#27344e">
+ <p>Esto solamente es el primer nivel.</p>
+ <div class="savefile pixel" style="font-size:10px">GAME SAVED.<br><br>ALEN × DILLY<br>LV. 01<br>EXP: 30 DAYS<br><br>NEXT OBJECTIVE:<br>LOVE YOU EVEN MORE.</div>`);
+}
+let p=0;
+const bootLines=['Loading save file...','Finding player 2...','Restoring memories...','Checking achievements...','30 DAYS FOUND.','Ready.'];
+const timer=setInterval(()=>{
+ p+=20; document.getElementById('bootbar').style.width=p+'%';
+ document.getElementById('boottext').textContent=bootLines[Math.min(p/20-1,bootLines.length-1)];
+ if(p>=100){clearInterval(timer);document.getElementById('startBtn').classList.remove('hidden');}
+},420);
+</script>
+</body>
+</html>
+'''
+
+out = Path("/mnt/data/DILLY_EXE_ONE_MONTH.html")
+out.write_text(html, encoding="utf-8")
+
+zip_path = Path("/mnt/data/DILLY_EXE_ONE_MONTH.zip")
+with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+    z.write(out, out.name)
+
+print(f"Creado: {out}")
+print(f"ZIP: {zip_path}")
